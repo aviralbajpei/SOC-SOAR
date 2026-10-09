@@ -1,0 +1,14 @@
+# Python / Node
+__pycache__/
+*.pyc
+node_modules/
+# Local tools downloaded by 3_SHARE_ONLINE.bat
+tools/bin/
+# Secrets: never commit API keys or Streamlit secrets
+.env
+*.env
+.streamlit/secrets.toml
+ui/.streamlit/secrets.toml
+# OS files
+.DS_Store
+Thumbs.db
