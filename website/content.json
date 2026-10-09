@@ -9,7 +9,7 @@
     "Jatin Balecha",
     "Prakhar Aryan"
   ],
-  "app_url": "",
+  "app_url": "https://soc-triage-scit.streamlit.app/",
   "video_url": "https://drive.google.com/drive/folders/1RpVaA3kFUzE1MyHtbhU2kA-EvTd-V9jx?usp=sharing",
   "expert": {
     "name": "",
@@ -27,5 +27,6 @@
   },
   "show_prns_on_website": false,
   "submitted_to": "Dr. Anshul Saxena",
-  "evidence_url": "https://drive.google.com/drive/folders/1RpVaA3kFUzE1MyHtbhU2kA-EvTd-V9jx?usp=sharing"
+  "evidence_url": "https://drive.google.com/drive/folders/1RpVaA3kFUzE1MyHtbhU2kA-EvTd-V9jx?usp=sharing",
+  "repo_url": "https://github.com/aviralbajpei/SOC-SOAR"
 }

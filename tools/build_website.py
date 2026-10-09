@@ -32,7 +32,7 @@ def main():
     content.pop("_help", None)
     data = {"content": content, "results": load_results()}
     page = TEMPLATE
-    for key, fig in (("FIG1", "fig1_as_is.svg"), ("FIG2", "fig2_to_be.svg"), ("FIG3", "fig3_architecture.svg")):
+    for key, fig in (("FIG1", "fig1_as_is.svg"), ("FIG2", "fig2_to_be.svg"), ("FIG3", "fig3_architecture_hosted.svg")):
         page = page.replace("{{" + key + "}}", svg_uri(fig))
     page = page.replace("{{DATA}}", json.dumps(data).replace("</", "<\\/"))
     page = page.replace("{{TEAM}}", html.escape(content.get("team_name") or "Team"))
@@ -67,6 +67,11 @@ nav .wrap{display:flex;gap:22px;align-items:center;height:56px;overflow-x:auto;w
 nav strong{font-weight:600;margin-right:auto}
 nav a{text-decoration:none;color:var(--slate);font-size:14px}
 nav a:hover{color:var(--ink)}
+nav a.navcta{background:var(--ink);color:var(--paper);padding:6px 12px;border-radius:3px;font-weight:600}
+nav a.navcta:hover{color:var(--paper);opacity:.9}
+.ctas{display:flex;gap:12px;flex-wrap:wrap;margin-top:22px}
+.btn.ghost{background:transparent;color:var(--ink);border:1px solid var(--ink)}
+.find{border-left:3px solid var(--auto);padding:2px 0 2px 14px;margin:10px 0}
 header{padding:72px 0 56px;border-bottom:1px solid var(--rule)}
 h1{font-size:clamp(34px,5vw,54px);line-height:1.08;letter-spacing:-0.02em;font-weight:600;margin:0 0 20px;max-width:18ch}
 .lede{font-size:19px;color:var(--slate);max-width:56ch;margin:0}
@@ -115,12 +120,13 @@ footer{padding:40px 0 56px;color:var(--slate);font-size:14px}
 </head>
 <body>
 <nav aria-label="Sections"><div class="wrap"><strong>SOC triage, governed</strong>
-<a href="#problem">Problem</a><a href="#process">Process</a><a href="#architecture">Architecture</a><a href="#poc">Proof of concept</a><a href="#models">Model comparison</a><a href="#guardrails">Guardrails</a><a href="#expert">Expert validation</a><a href="#video">Video</a></div></nav>
+<a href="#problem">Problem</a><a href="#process">Process</a><a href="#architecture">Architecture</a><a href="#poc">Proof of concept</a><a href="#models">Model comparison</a><a href="#guardrails">Guardrails</a><a href="#expert">Expert validation</a><a href="#video">Video</a><a class="navcta" id="nav-app" href="#poc">Live platform</a></div></nav>
 
 <header><div class="wrap hero">
 <div>
 <h1>Governed agentic AI for SOC alert triage</h1>
 <p class="lede">Five AI agents assemble the evidence behind every security alert. Code scores and routes it, and a human analyst approves anything with real impact. Every step is recorded.</p>
+<div class="ctas" id="hero-ctas"></div>
 </div>
 <div>
 <p class="case">One case through the pipeline: ALRT-3001, suspicious login by a privileged user on a critical server</p>
@@ -167,8 +173,8 @@ footer{padding:40px 0 56px;color:var(--slate);font-size:14px}
 
 <section id="architecture"><div class="wrap">
 <h2>Architecture</h2>
-<div class="prose"><p>Six layers. The guardrails sit in code between the workflow and the models, so a model cannot talk its way past them.</p></div>
-<figure class="fig"><img src="{{FIG3}}" alt="Six layers: Streamlit console; n8n workflows; guardrails in code; five agents on open-weight models; tools and data; human oversight and governance."><figcaption>Streamlit console, n8n 2.41.3 workflows, open-weight models (GPT-OSS 20B and 120B, Qwen 3.8 27B on Groq, or local models through Ollama).</figcaption></figure>
+<div class="prose"><p>The system runs fully online. The analyst works in a Streamlit console hosted on Streamlit Community Cloud; it calls seven n8n workflows on n8n Cloud over HTTPS, and the agents call open-weight models through the Groq API. Cases and the audit log are stored in n8n Cloud data tables. The guardrails sit in code between the workflow and the models, so a model cannot talk its way past them.</p></div>
+<figure class="fig"><img src="{{FIG3}}" alt="Six layers: Streamlit console; n8n workflows; guardrails in code; five agents on open-weight models; tools and data; human oversight and governance."><figcaption>Hosted stack: Streamlit Community Cloud (console) → n8n Cloud (workflows, data tables, encrypted API credential) → Groq API (GPT-OSS 20B, GPT-OSS 120B, Qwen 3.8 27B). The same project also runs on a laptop, or fully offline with local models through Ollama.</figcaption></figure>
 </div></section>
 
 <section id="poc"><div class="wrap">
@@ -189,8 +195,16 @@ footer{padding:40px 0 56px;color:var(--slate);font-size:14px}
 
 <section id="models"><div class="wrap">
 <h2>Model comparison</h2>
-<div class="prose"><p>Each model receives the same five alerts, prompts, evidence and output schema, three times each. Results are scored against an expected outcome for every alert.</p></div>
+<div class="prose"><p>Each model received the same five alerts, prompts, evidence and output schema, three times each: 15 runs per model, scored automatically against an expected outcome for every alert.</p></div>
 <div id="results"></div>
+<h3>Key findings</h3>
+<div class="prose">
+<p class="find"><b>No model missed an attack.</b> All three had zero false negatives; every mistake went to the safe side, a case sent to a human, never a real attack closed.</p>
+<p class="find"><b>Code protects against a weak model.</b> GPT-OSS 120B proposed the right class only 33% of the time, yet its final class was right in every run, because code computes the score from the evidence.</p>
+<p class="find"><b>GPT-OSS 20B is fastest but less reliable.</b> It invented evidence IDs six times; the guardrail caught every one and sent those cases to a human, which lowered its task completion to 60%.</p>
+<p class="find"><b>Qwen 3.8 27B</b>, a preview model, was throttled on the free tier: 9 rate-limited calls and two time-outs.</p>
+<p><b>Recommendation:</b> GPT-OSS 120B for a pilot. It had the best routing (87%), the most reliable structured output (98% valid JSON on the first try) and the highest task completion (87%).</p>
+</div>
 <h3>What we measure</h3>
 <div class="two"><ul class="plain">
 <li><b>Classification:</b> exact match, and within one level, of the final class</li>
@@ -212,7 +226,7 @@ footer{padding:40px 0 56px;color:var(--slate);font-size:14px}
 <thead><tr><th>Risk</th><th>Guardrail</th><th>Governance requirement</th><th>Where it is enforced</th></tr></thead>
 <tbody>
 <tr><td>Personal data exposed to a model</td><td>Mask emails and phone numbers before any model call</td><td>NIST MEASURE 2.10; ISO 27001 A.8.11, A.5.34; DPDP Act 2023</td><td>Injection and PII screen</td></tr>
-<tr><td>Confidential data leaves the organisation</td><td>Synthetic data only; explicit endpoints; keys held in memory, never in files</td><td>NIST GOVERN 6.1; ISO 42001 A.10; ISO 27001 A.5.19–A.5.23</td><td>Model config; start script</td></tr>
+<tr><td>Confidential data leaves the organisation</td><td>Synthetic data only; explicit endpoints; keys held in memory, never in files</td><td>NIST GOVERN 6.1; ISO 42001 A.10; ISO 27001 A.5.19–A.5.23</td><td>n8n Cloud encrypted credential; model config</td></tr>
 <tr><td>Hallucinated evidence</td><td>Every cited ID must exist in the case evidence</td><td>NIST MEASURE 2.5; ISO 42001 A.6.2.4</td><td>Output and summary guardrails</td></tr>
 <tr><td>Prompt injection</td><td>Screen before any model call; alert text treated as data</td><td>NIST MEASURE 2.7; ISO 27001 A.8.28</td><td>Injection screen; shared prompt rules</td></tr>
 <tr><td>Bias in prioritisation</td><td>Unknown asset or user scored above medium, not as safe</td><td>NIST MEASURE 2.11; ISO 42001 A.5.2</td><td>Asset lookup ordering; completeness flags</td></tr>
@@ -237,6 +251,7 @@ footer{padding:40px 0 56px;color:var(--slate);font-size:14px}
 <li>Analyst identity comes from a selector, not real sign-in.</li>
 <li>The audit table is append-only by design, not tamper-proof.</li>
 <li>Hosted models receive masked, synthetic alerts; real data would need local models or a data-processing agreement.</li>
+<li>The cloud deployment uses free tiers (n8n Cloud trial, Streamlit Community Cloud, Groq), so runs can be throttled and the console sleeps when idle.</li>
 </ul></div><div><h3>Recommended next steps</h3><ul class="plain">
 <li>Pilot in shadow mode on real alerts, with expert-set thresholds.</li>
 <li>Connect to a live SIEM (for example Wazuh) and single sign-on.</li>
@@ -276,10 +291,11 @@ footer{padding:40px 0 56px;color:var(--slate);font-size:14px}
   // benchmark results
   var r = data.results, box = document.getElementById('results');
   if (r && r.length) {
-    var cols = [['model','Model',0],['classification_exact','Class exact',1],['escalation_accuracy','Escalation accuracy',1],['false_positives','False pos.',0],['false_negatives','False neg.',0],['hallucinated_ids','Invented IDs',0],['json_first_attempt_rate','JSON first try',1],['median_case_llm_latency_s','Median latency (s)',0],['task_completion','Task completion',1],['explanation_quality_1to5','Explanation (1–5)',0]];
+    var cols = [['model','Model',0],['classification_exact','Class exact',1],['route_match','Route match',1],['escalation_accuracy','Escalation accuracy',1],['false_positives','False pos.',0],['false_negatives','False neg.',0],['hallucinated_ids','Invented IDs',0],['json_first_attempt_rate','JSON first try',1],['median_case_llm_latency_s','Median latency (s)',0],['task_completion','Task completion',1],['explanation_quality_1to5','Explanation (1–5)',0]];
     var h = '<div class="scroll"><table><thead><tr>' + cols.map(function(x){ return '<th' + (x[0]==='model'?'':' class="num"') + '>' + x[1] + '</th>'; }).join('') + '</tr></thead><tbody>';
-    r.forEach(function(row){ h += '<tr>' + cols.map(function(x){ var v = row[x[0]]; if (x[2] && v !== '' && v != null && !isNaN(v)) v = Math.round(parseFloat(v)*100) + '%'; return '<td' + (x[0]==='model'?'':' class="num"') + '>' + esc(v === '' || v == null ? '–' : v) + '</td>'; }).join('') + '</tr>'; });
-    box.innerHTML = h + '</tbody></table></div><p class="src">' + esc(r[0].runs) + ' runs per model. Full per-run data is in the project repository.</p>';
+    var names = {'openai/gpt-oss-20b':'GPT-OSS 20B','openai/gpt-oss-120b':'GPT-OSS 120B','qwen/qwen3.8-27b':'Qwen 3.8 27B'};
+    r.forEach(function(row){ h += '<tr>' + cols.map(function(x){ var v = row[x[0]]; if (x[0]==='model') v = names[v] || v; if (x[2] && v !== '' && v != null && !isNaN(v)) v = Math.round(parseFloat(v)*100) + '%'; return '<td' + (x[0]==='model'?'':' class="num"') + '>' + esc(v === '' || v == null ? '–' : v) + '</td>'; }).join('') + '</tr>'; });
+    box.innerHTML = h + '</tbody></table></div><p class="src">' + esc(r[0].runs) + ' runs per model on the free Groq tier. Explanation quality has not been scored yet. Full per-run data is in the project repository.</p>';
   } else {
     box.innerHTML = '<div class="pending"><b>Results to be published after the benchmark run.</b> The benchmark script is ready and verified on the pipeline; open-weight model results will appear here once measured.</div>';
   }
@@ -298,7 +314,14 @@ footer{padding:40px 0 56px;color:var(--slate);font-size:14px}
   }
 
   // live demo link
-  if (c.app_url) document.getElementById('app-link').innerHTML = '<p style="margin-top:18px"><a class="btn" href="' + esc(c.app_url) + '" target="_blank" rel="noopener">Open the live demo</a></p><p class="src">Password-protected; access is shared with evaluators.</p>';
+  if (c.app_url) {
+    document.getElementById('app-link').innerHTML = '<p style="margin-top:18px"><a class="btn" href="' + esc(c.app_url) + '" target="_blank" rel="noopener">Open the SOC monitoring platform</a></p><p class="src">Live on Streamlit Community Cloud. If it has been idle, it takes about a minute to wake up.</p>';
+    var na = document.getElementById('nav-app'); na.href = c.app_url; na.target = '_blank'; na.rel = 'noopener';
+  } else { var na2 = document.getElementById('nav-app'); if (na2) na2.remove(); }
+  var hc = document.getElementById('hero-ctas'), hh = '';
+  if (c.app_url) hh += '<a class="btn" href="' + esc(c.app_url) + '" target="_blank" rel="noopener">Open the live SOC platform</a>';
+  if (c.repo_url) hh += '<a class="btn ghost" href="' + esc(c.repo_url) + '" target="_blank" rel="noopener">View the code on GitHub</a>';
+  hc.innerHTML = hh;
 
   // video
   var vb = document.getElementById('video-body');
